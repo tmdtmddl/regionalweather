@@ -15,6 +15,7 @@ import {
 } from "chart.js";
 import { Line, Bar } from "react-chartjs-2";
 import type { ChartOptions } from "chart.js";
+import { twMerge } from "tailwind-merge";
 
 ChartJS.register(
   CategoryScale,
@@ -123,7 +124,7 @@ const Home = () => {
   }
 
   return (
-    <div className=" bg-white text-black ">
+    <div className=" bg-white text-black min-h-screen">
       <div
         className="cursor-pointer hover:text-sky-700"
         onClick={() => setViewType(null)}
@@ -135,25 +136,31 @@ const Home = () => {
       <div className="flex">
         <aside className="border min-w-16 max-h-[400px] flex flex-col">
           <div
-            className="border p-1 cursor-pointer hover:text-sky-500"
+            className={twMerge(
+              "border-y p-1 cursor-pointer hover:text-sky-500",
+              viewType === "temperature" && "text-sky-600 bg-zinc-50"
+            )}
             onClick={() => setViewType("temperature")}
           >
             기온
           </div>
           <div
-            className="border p-1 cursor-pointer hover:text-sky-500"
+            className={twMerge(
+              "border-y p-1 cursor-pointer hover:text-sky-500",
+              viewType === "rainfall" && "text-sky-600 bg-zinc-50"
+            )}
             onClick={() => setViewType("rainfall")}
           >
             강수량
           </div>
         </aside>
-        <div className=" w-full min-h-[400px] border">
+        <div className=" w-full min-h-[400px] ">
           <div className=" ">
             {!viewType && (
               <p className="text-gray-500">확인하고 싶은 차트를 선택하세요.</p>
             )}
             {chartData ? (
-              <div className="w-full min-h-[400px] border p-4">
+              <div className="w-full min-h-[400px] border p-2.5">
                 <Bar options={chartOptions} data={chartData} />
               </div>
             ) : null}
