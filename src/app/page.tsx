@@ -1,101 +1,167 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useQuery } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  BarElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Line, Bar } from "react-chartjs-2";
+import type { ChartOptions } from "chart.js";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+interface WeatherProps {
+  tm: string; //! 아이디 활용 //시간(일시)
+  stnNm: string; // 지역
+  avgTa: string; // 평균기온
+  minTa: string; // 최저기온
+  maxTa: string; // 최고기온
+  sumRn: string; // 강수량
+}
+
+const Home = () => {
+  const [viewType, setViewType] = useState<"temperature" | "rainfall" | null>(
+    null
+  );
+
+  const fetchWeather = useCallback(async (): Promise<WeatherProps[]> => {
+    const res = await fetch("/api/v0", { method: "POST" });
+    if (!res.ok) {
+      throw new Error("데이터 요청 실패");
+    }
+    const data = await res.json();
+    return data.items ?? [];
+  }, []);
+
+  const {
+    data: items = [],
+    isPending,
+    error,
+  } = useQuery<WeatherProps[]>({
+    queryKey: ["weatherData"],
+    queryFn: fetchWeather,
+  });
+
+  const chartData =
+    viewType === "temperature"
+      ? {
+          //차트에 들어갈 데이터
+          labels: items.map((item) => item.tm),
+          datasets: [
+            {
+              label: "평균기온",
+              data: items.map((item) => parseFloat(item.avgTa)),
+              borderColor: "green",
+              backgroundColor: "green",
+            },
+            {
+              label: "최저기온",
+              data: items.map((item) => parseFloat(item.minTa)),
+              borderColor: "skyblue",
+              backgroundColor: "skyblue",
+            },
+            {
+              label: "최고기온",
+              data: items.map((item) => parseFloat(item.maxTa)),
+              borderColor: "orange",
+              backgroundColor: "orange",
+            },
+          ],
+        }
+      : viewType === "rainfall"
+      ? {
+          labels: items.map((item) => item.tm),
+          datasets: [
+            {
+              label: "강수량",
+              data: items.map((item) => parseFloat(item.sumRn)),
+              backgroundColor: "rgba(153, 102, 255, 0.5)",
+              borderColor: "rgb(153, 102, 255)",
+            },
+          ],
+        }
+      : null;
+
+  const chartOptions: ChartOptions<"bar"> = {
+    //차트위에 옵션
+    responsive: true, // 차트가 브라우저 창 크기에 맞춰 자동으로 크기 조절
+    plugins: {
+      legend: { position: "top" as const }, //legend는 차트에 나오는 설명 박스 //"as const"는 TypeScript 문법으로, "top"을 리터럴 타입으로 고정하려는 뜻이에요. 없애도 작동은 합니다.
+      title: {
+        display: true, //display: true → 제목 보이게 설정
+        text:
+          (viewType === "rainfall" && "날짜별 강수량") ||
+          (viewType === "temperature" && "날짜별 기온") ||
+          "", //text: "날짜별 기온" → 실제로 보일 텍스트
+      },
+    },
+  };
+
+  if (isPending) {
+    return <div>로딩중 ...</div>;
+  }
+
+  if (error) {
+    return alert(`데이터를 가져오는 데 실패하였습니다.${error.message}`);
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className=" bg-white text-black ">
+      <div
+        className="cursor-pointer hover:text-sky-700"
+        onClick={() => setViewType(null)}
+      >
+        <h1 className="text-2xl font-bold text-center p-2.5">
+          대전 기온과 강수량
+        </h1>
+      </div>
+      <div className="flex">
+        <aside className="border min-w-16 max-h-[400px] flex flex-col">
+          <div
+            className="border p-1 cursor-pointer hover:text-sky-500"
+            onClick={() => setViewType("temperature")}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            기온
+          </div>
+          <div
+            className="border p-1 cursor-pointer hover:text-sky-500"
+            onClick={() => setViewType("rainfall")}
           >
-            Read our docs
-          </a>
+            강수량
+          </div>
+        </aside>
+        <div className=" w-full min-h-[400px] border">
+          <div className=" ">
+            {!viewType && (
+              <p className="text-gray-500">확인하고 싶은 차트를 선택하세요.</p>
+            )}
+            {chartData ? (
+              <div className="w-full min-h-[400px] border p-4">
+                <Bar options={chartOptions} data={chartData} />
+              </div>
+            ) : null}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
-}
+};
+
+export default Home;
