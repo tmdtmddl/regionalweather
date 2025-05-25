@@ -154,7 +154,9 @@ const Home = () => {
             강수량
           </div>
         </aside>
-        <div className=" w-full min-h-[400px] ">
+        <div
+          className={twMerge(" w-full min-h-[400px] ", !viewType && "border")}
+        >
           <div className=" ">
             {!viewType && (
               <p className="text-gray-500">확인하고 싶은 차트를 선택하세요.</p>
